@@ -8,12 +8,12 @@ def convolve(matrix, kernel):
 
     Parameters:
     ------------
-    matrix (list of list of int): The input matrix to be convolved.
-    kernel (list of list of int): The kernel to convolve with.
+    matrix (list of lists of int): The input matrix to be convolved.
+    kernel (list of lists of float): The kernel to convolve with.
 
     Returns:
     ------------
-    list of list of int: The convolved matrix.
+    list of lists of int: The convolved matrix.
     """
     # Using numpy, so converting the input lists to numpy arrays
     matrix = np.array(matrix)
@@ -29,37 +29,47 @@ def convolve(matrix, kernel):
 
     convolved_matrix = np.zeros_like(matrix)
 
-    # Check if the kernel is separable
-    if is_approximately_separable(kernel):
-        # If the kernel is separable, decompose it into two 1D kernels
-        decomposed_kernel1, decomposed_kernel2 = separate_Kernel(kernel)
+    # If the kernel is small, the naive approach is a lot faster
+    if kernel_shape[0] <= 15 and kernel_shape[1] <= 15:
+        for i in range(matrix.shape[0]):
+            for j in range(matrix.shape[1]):
+                # Using numpy to do the convolution
+                convolved_matrix[i, j] = (
+                    np.sum(padded_matrix[i:i + kernel_shape[0], j:j + kernel_shape[1]] * kernel).round())
 
-        # Convolve the matrix with the two 1D kernels
-        convolved_matrix = convolve_1D(padded_matrix, decomposed_kernel1, decomposed_kernel2)
     else:
-        # If the kernel is not separable, use the 2D convolution
-        convolved_matrix = convolve_2D(padded_matrix, kernel)
+        # Check if the kernel is separable
+        if is_approximately_separable(kernel):
+            # If the kernel is separable, decompose it into two 1D kernels
+            decomposed_kernel1, decomposed_kernel2 = separate_Kernel(kernel)
+
+            # Convolve the matrix with the two 1D kernels
+            convolved_matrix = convolve_1D_fft(padded_matrix, decomposed_kernel1, decomposed_kernel2)
+        else:
+            # If the kernel is not separable, use the 2D convolution
+            convolved_matrix = convolve_2D_fft(padded_matrix, kernel)
 
     # Returning the convolved matrix after trimming it to the original size
     return convolved_matrix[kernel_shape[0] // 2: -kernel_shape[0] // 2,
                             kernel_shape[1] // 2: -kernel_shape[1] // 2].tolist()
 
 
-def convolve_1D(padded_matrix, decomposed_kernel1, decomposed_kernel2):
+def convolve_1D_fft(padded_matrix, decomposed_kernel1, decomposed_kernel2):
     """
     This function convolves a 2D matrix with two 1D kernels.
     It is done by doing an FFT convolution, which is faster than the naive approach.
 
     Parameters:
     ------------
-    padded_matrix (list of list of int): The input matrix to be convolved after padding.
-    decomposed_kernel1 (list of int): The first 1D kernel to convolve with.
-    decomposed_kernel2 (list of int): The second 1D kernel to convolve with.
+    padded_matrix (list of lists of int): The input matrix to be convolved after padding.
+    decomposed_kernel1 (list of float): The first 1D kernel to convolve with.
+    decomposed_kernel2 (list of float): The second 1D kernel to convolve with.
 
     Returns:
     ------------
-    list of list of int: The convolved matrix.
+    list of lists of int: The convolved matrix.
     """
+    # Using FFT convolution for faster computation in O(n log n) time- useful for large matrices/kernels
     # First convolve the matrix with the first 1D kernel
     convolved_matrix1 = np.fft.ifft(np.fft.fft(padded_matrix, axis=0) * np.fft.fft(decomposed_kernel1)).real
 
@@ -67,10 +77,10 @@ def convolve_1D(padded_matrix, decomposed_kernel1, decomposed_kernel2):
     convolved_matrix2 = np.fft.ifft(np.fft.fft(convolved_matrix1, axis=1) * np.fft.fft(decomposed_kernel2)).real
 
     # Finally, we convert the result to a list of lists
-    return convolved_matrix2.tolist()
+    return np.round(convolved_matrix2).astype(int).tolist()
 
 
-def convolve_2D(padded_matrix, kernel):
+def convolve_2D_fft(padded_matrix, kernel):
     """
     This function convolves a 2D matrix with a given kernel.
     It is done by doing an FFT convolution, which is faster than the naive approach.
@@ -88,7 +98,7 @@ def convolve_2D(padded_matrix, kernel):
     convolved_matrix = np.fft.ifft2(np.fft.fft2(padded_matrix) * np.fft.fft2(kernel, s=padded_matrix.shape)).real
 
     # Returning the matrix to being a list of lists and returning it
-    return convolved_matrix.tolist()
+    return np.round(convolved_matrix).astype(int).tolist()
 
 
 def is_approximately_separable(kernel, threshold = 0.9):
@@ -99,7 +109,7 @@ def is_approximately_separable(kernel, threshold = 0.9):
 
     Parameters:
     ------------
-    kernel (list of list of int): The kernel to check.
+    kernel (list of lists of float): The kernel to check.
     threshold (float): The threshold for the approximation. Default is 0.9.
 
     Returns:
@@ -124,7 +134,7 @@ def separate_Kernel(kernel):
 
     Parameters:
     ------------
-    kernel (list of list of int): The kernel to be separated.
+    kernel (list of lists of float): The kernel to be separated.
 
     Returns:
     ------------

@@ -1,7 +1,8 @@
 ##############################################################################
 # FILE: ImageAdjustments.py
 # WRITER: Itai Muntner
-# DESCRIPTION: A helper file that applies adjustments to images
+# DESCRIPTION: A helper file that applies adjustments to images: brightness,
+#              contrast, and saturation. The adjustments are done using NumPy.
 ##############################################################################
 
 ##############################################################################
@@ -9,7 +10,6 @@
 ##############################################################################
 import numpy as np
 from typing import List, Union
-from MatrixConvolution import convolve
 
 ##############################################################################
 #                                   Typing                                   #
@@ -17,110 +17,157 @@ from MatrixConvolution import convolve
 SingleChannelImage = List[List[int]]
 ColoredImage = List[List[List[int]]]
 Image = Union[ColoredImage, SingleChannelImage, np.ndarray]
-Kernel = Union[List[List[float]], np.ndarray]
-Vector = Union[List[float], np.ndarray]
 
 
 ##############################################################################
 #                                 CONSTANTS                                  #
 ##############################################################################
-BRIGHTNESS_COMMAND = "brightness"
-CONTRAST_COMMAND = "contrast"
-SATURATION_COMMAND = "saturation"
+MAX_PIXEL_VALUE = 255
+MAX_PIXEL_VALUE_FLOAT = 255.0
+MIDDLE_PIXEL_VALUE = 128.0
 
 ##############################################################################
 #                              Helper Functions                              #
 ##############################################################################
 
-def apply_adjustment(rgb_image: Image, adjustment_type: str, adjustment_value: float=1.0) -> Image:
+def adjust_image(image: Image, brightness: float=0.0, contrast: float=0.0, saturation: float=1.0):
     """
-    Apply an adjustment to the given image.
+    Adjust brightness, contrast, and saturation using NumPy only.
+
+    Parameters:
+        image (np.ndarray): RGB image (uint8)
+        brightness (float): Additive brightness, range ~[-1.0, 1.0]
+        contrast (float): Contrast factor, where 0.0 = no change, -1.0 = gray
+        saturation (float): 1.0 = no change, 0.0 = grayscale
+
+    Returns:
+        np.ndarray: Adjusted RGB image (uint8)
+    """
+    image = image.astype(np.float32)
+
+    # Adjust brightness
+    image += brightness * MAX_PIXEL_VALUE_FLOAT
+
+    # Adjust contrast
+    image = (1 + contrast) * (image - MIDDLE_PIXEL_VALUE) + MIDDLE_PIXEL_VALUE
+
+    # Adjust saturation
+    hsv = rgb_to_hsv(np.clip(image, 0, MAX_PIXEL_VALUE).astype(np.uint8))
+    hsv[..., 1] *= saturation
+    hsv[..., 1] = np.clip(hsv[..., 1], 0, 1)
+    image = hsv_to_rgb(hsv)
+
+    return image
+
+
+def rgb_to_hsv(image: Image) -> Image:
+    """
+    Convert an RGB image to HSV format using NumPy.
+    This function was taken from ChatGPT and modified to work with NumPy,
+    as I wasn't familiar enough with the HSV color space and how to convert it from RGB.
+    I did read it thoroughly and understand it, but I didn't want to risk making a mistake.
 
     Parameters:
     ------------
-    image (list of lists of a list of int): The input image to be adjusted.
-    adjustment_type (str): The type of adjustment to apply. Can be 'brightness', 'contrast', or 'gamma'.
+    img (np.ndarray): RGB image (uint8)
 
     Returns:
     ------------
-    list of lists of a list of int: The adjusted image.
+    np.ndarray: HSV image (float32)
     """
-    # Check if the image is empty
-    if not rgb_image or not rgb_image[0]:
-        return []
+    # Ensure the image is in float32 format, normalized to [0, 1]
+    image = image.astype(np.float32) / MAX_PIXEL_VALUE_FLOAT
 
-    image_layers_num = len(rgb_image[0][0]) if isinstance(rgb_image[0], list) else 1
+    # Separate the channels into r, g, b
+    red, green, blue = image[..., 0], image[..., 1], image[..., 2]
 
-    # Check if the image is grayscale or colored
-    if image_layers_num == 1:
-        # If the image is grayscale, we can apply the adjustment directly
-        single_layer_image = [[pixel[0] for pixel in row] for row in rgb_image]
-        return apply_adjustment_to_single_layer(single_layer_image, adjustment_type, adjustment_value)
+    # Calculate max and min channels for each pixel
+    max_channel = np.maximum(np.maximum(red, green), blue)
+    min_channel = np.minimum(np.minimum(red, green), blue)
 
-    else:
-        # If the image is colored, we need to apply the adjustment to each layer separately
-        adjusted_image = []
-        for layer in range(image_layers_num):
-            single_layer_image =\
-                [[rgb_image[i][j][layer] for j in range(len(rgb_image[0]))] for i in range(len(rgb_image))]
-            adjusted_layer = apply_adjustment_to_single_layer(single_layer_image, adjustment_type, adjustment_value)
-            adjusted_image.append(adjusted_layer)
+    # Value calculation
+    value = max_channel
 
-        # Combine the adjusted layers back into a single image
-        combined_adjusted_image = [[[adjusted_image[layer][i][j] for layer in range(image_layers_num)]
-                                     for j in range(len(adjusted_image[0]))]
-                                    for i in range(len(adjusted_image[0][0]))]
+    # Saturation calculation
+    delta = max_channel - min_channel
 
-        return combined_adjusted_image
+    # Avoid division by zero
+    saturation = np.where(max_channel == 0, 0, delta / max_channel)
+
+    # Hue calculation
+    hue = np.zeros_like(max_channel)
+
+    # If delta is zero, hue is undefined (set to 0)
+    mask = delta != 0
+
+    # Calculate hue based on which channel is the max
+    # Red channel is max
+    idx = (max_channel == red) & mask
+    hue[idx] = (green[idx] - blue[idx]) / delta[idx]
+
+    # Green channel is max
+    idx = (max_channel == green) & mask
+    hue[idx] = 2.0 + (blue[idx] - red[idx]) / delta[idx]
+
+    # Blue channel is max
+    idx = (max_channel == blue) & mask
+    hue[idx] = 4.0 + (red[idx] - green[idx]) / delta[idx]
+
+    # Normalize hue to [0, 1]
+    hue = (hue / 6.0) % 1.0
+    hue[delta == 0] = 0
+
+    # Stack the channels to form the HSV image
+    hsv = np.stack([hue, saturation, value], axis=-1)
+    return hsv
 
 
-def apply_adjustment_to_single_layer(single_layer_image: Image,
-                                     adjustment_type: str, adjustment_value: float=1.0) -> Image:
+def hsv_to_rgb(hsv: Image) -> Image:
     """
-    Apply an adjustment to a single layer of the image.
+    Convert an HSV image to RGB format using NumPy.
+    This function was taken from ChatGPT and modified to work with NumPy,
+    as I wasn't familiar enough with the HSV color space and how to convert it to RGB.
+    I did read it thoroughly and understand it, but I didn't want to risk making a mistake.
 
     Parameters:
     ------------
-    single_layer_image (list of lists of int): The input image to be adjusted.
-    adjustment_type (str): The type of adjustment to apply. Can be 'brightness', 'contrast', or 'gamma'.
+    hsv (np.ndarray): HSV image (float32)
 
     Returns:
     ------------
-    list of lists of int: The adjusted image.
+    np.ndarray: RGB image (uint8)
     """
-    if adjustment_type == BRIGHTNESS_COMMAND:
-        return adjust_brightness(single_layer_image, 1.2)
-    elif adjustment_type == CONTRAST_COMMAND:
-        return adjust_contrast(single_layer_image, 1.5)
-    elif adjustment_type == SATURATION_COMMAND:
-        return adjust_saturation(single_layer_image, 1.5)
-    else:
-        raise ValueError(f"Unknown adjustment type: {adjustment_type}")
+    # Separate the channels into h, s, v
+    hue, saturation, value = hsv[..., 0], hsv[..., 1], hsv[..., 2]
 
+    # Convert hue to sector between 0 and 5 and a fractional part
+    hue_sector = np.floor(hue * 6).astype(int)
+    hue_fractional = hue * 6 - hue_sector
 
-def adjust_brightness(single_layer_image, brightness_factor):
-    """
-    Adjust the brightness of a single layer of the image.
+    # Calculate interpolated values
+    p = value * (1 - saturation)
+    q = value * (1 - hue_fractional * saturation)
+    t = value * (1 - (1 - hue_fractional) * saturation)
 
-    Parameters:
-    ------------
-    single_layer_image (list of lists of int): The input image to be adjusted.
-    brightness_factor (float): The factor to adjust the brightness by.
+    # Ensure hue_sector is in the range [0, 5]
+    hue_sector = hue_sector % 6
 
-    Returns:
-    ------------
-    list of lists of int: The adjusted image.
-    """
-    # Check if the image is empty
-    if not single_layer_image or not single_layer_image[0]:
-        return []
+    # Create conditions for each sector
+    conditions = [
+        (hue_sector == 0), (hue_sector == 1), (hue_sector == 2),
+        (hue_sector == 3), (hue_sector == 4), (hue_sector == 5)
+    ]
 
-    # Create a new image with the same dimensions
-    adjusted_image = np.zeros_like(single_layer_image)
+    # Initialize RGB array
+    rgb = np.zeros_like(hsv)
 
-    # Adjust the brightness
-    for i in range(len(single_layer_image)):
-        for j in range(len(single_layer_image[0])):
-            adjusted_image[i][j] = np.clip(single_layer_image[i][j] * brightness_factor, 0, 255)
+    # Assign RGB values based on hue sector
+    rgb[conditions[0]] = np.stack([value, t, p], axis=-1)[conditions[0]]
+    rgb[conditions[1]] = np.stack([q, value, p], axis=-1)[conditions[1]]
+    rgb[conditions[2]] = np.stack([p, value, t], axis=-1)[conditions[2]]
+    rgb[conditions[3]] = np.stack([p, q, value], axis=-1)[conditions[3]]
+    rgb[conditions[4]] = np.stack([t, p, value], axis=-1)[conditions[4]]
+    rgb[conditions[5]] = np.stack([value, p, q], axis=-1)[conditions[5]]
 
-    return adjusted_image.tolist()
+    # Clip values to [0, 1] and convert to uint8
+    return (np.clip(rgb, 0, 1) * MAX_PIXEL_VALUE).astype(np.uint8)

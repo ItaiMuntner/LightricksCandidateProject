@@ -1,7 +1,11 @@
 ##############################################################################
 # FILE: ImageHelperFunctions.py
 # WRITER: Itai Muntner
-# DESCRIPTION: A helper file that handles image loading, saving, and displaying
+# DESCRIPTION: A helper file that handles image loading, saving, and displaying.
+#              The PIL library is used to handle the images, as NumPy is not
+#              suitable for displaying images. I also used the PIL library to
+#              convert the images to lists for easier manipulation.
+#              The lists are then converted back to images for saving and displaying.
 ##############################################################################
 
 ##############################################################################

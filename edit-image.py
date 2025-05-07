@@ -1,5 +1,5 @@
 ##############################################################################
-# FILE: ImageEditor.py
+# FILE: edit-image.py
 # WRITER: Itai Muntner
 # DESCRIPTION: The main file that handles the image editing process. It reads the JSON
 #              file, applies the specified operations to the image, and saves the

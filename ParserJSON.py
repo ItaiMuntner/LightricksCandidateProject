@@ -6,11 +6,6 @@
 ##############################################################################
 
 ##############################################################################
-#                                   Imports                                  #
-##############################################################################
-import json
-
-##############################################################################
 #                                 CONSTANTS                                  #
 ##############################################################################
 INPUT_KEY = "input"
@@ -21,6 +16,15 @@ TYPE_KEY = "type"
 VALUE_KEY = "value"
 ADJUSTMENTS_TYPES = ["brightness", "contrast", "saturation"]
 FILTERS_TYPES = ["sharpen", "box", "sobel"]
+BRIGHTNESS_KEY = "brightness"
+CONTRAST_KEY = "contrast"
+SATURATION_KEY = "saturation"
+SHARPEN_KEY = "sharpen"
+BOX_BLUR_KEY = "box"
+EDGE_DETECTION_KEY = "sobel"
+HEIGHT_KEY = "height"
+WIDTH_KEY = "width"
+AMOUNT_KEY = "amount"
 
 
 ##############################################################################
@@ -98,30 +102,30 @@ def check_operation_values(operation: dict) -> bool:
     if operation[TYPE_KEY] in ADJUSTMENTS_TYPES:
         # Check if the adjustment value is a number
         if VALUE_KEY not in operation or not isinstance(operation[VALUE_KEY], (int, float)):
-            print("'value' key is missing or not a number.")
+            print(f"{VALUE_KEY} key is missing or not a number.")
             return False
         # No need to check the value of the adjustment, as it can be any number
         # because we clip it in the image processing function
         return True
 
     elif operation[TYPE_KEY] in FILTERS_TYPES:
-        if operation[TYPE_KEY] == "box":
+        if operation[TYPE_KEY] == BOX_BLUR_KEY:
             # Check if the box blur size is a positive integer
-            if "height" not in operation or not isinstance(operation["height"], int) or operation["height"] <= 0:
+            if HEIGHT_KEY not in operation or not isinstance(operation[HEIGHT_KEY], int) or operation[HEIGHT_KEY] <= 0:
                 print("'height' key of box blur is missing or not a number.")
                 return False
-            if "width" not in operation or not isinstance(operation["width"], int) or operation["width"] <= 0:
+            if WIDTH_KEY not in operation or not isinstance(operation[WIDTH_KEY], int) or operation[WIDTH_KEY] <= 0:
                 print("'width' key of box blur is missing or not a number.")
                 return False
             return True
-        elif operation["type"] == "sharpen":
+        elif operation[TYPE_KEY] == SHARPEN_KEY:
             # Check if the sharpening factor is a positive number
-            if "amount" not in operation or not isinstance(operation["amount"], (int, float)) or operation[
-                "amount"] <= 0:
+            if AMOUNT_KEY not in operation or not isinstance(operation[AMOUNT_KEY], (int, float)) or operation[
+                AMOUNT_KEY] <= 0:
                 print("'amount' key of sharpen is missing or an invalid number.")
                 return False
             return True
-        elif operation["type"] == "sobel":
+        elif operation[TYPE_KEY] == EDGE_DETECTION_KEY:
             if len(operation) != 1:
                 print("Sobel filter should not have any additional parameters.")
                 return False

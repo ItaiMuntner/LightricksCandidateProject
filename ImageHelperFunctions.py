@@ -12,7 +12,6 @@
 #                                   Imports                                  #
 ##############################################################################
 from PIL import Image as PILImage
-from copy import deepcopy
 from typing import List, Union
 import numpy as np
 

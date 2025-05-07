@@ -14,6 +14,7 @@
 from PIL import Image as PILImage
 from copy import deepcopy
 from typing import List, Union
+import numpy as np
 
 ##############################################################################
 #                                   Typing                                   #
@@ -33,7 +34,7 @@ RGB_CODE = "RGB"
 #                              Helper Functions                              #
 ##############################################################################
 
-def load_image(image_filename: str, mode: str=RGB_CODE) -> Image:
+def load_image(image_filename: str, mode: str = RGB_CODE) -> Image:
     """
     Loads the image stored in the path image_filename and return it as a list
     of lists.
@@ -50,7 +51,12 @@ def load_image(image_filename: str, mode: str=RGB_CODE) -> Image:
     rows X cols X channels. The list is 2D in case of a grayscale image and 3D
     in case it's colored.
     """
-    img = PILImage.open(image_filename).convert(mode)
+    img = PILImage.open(image_filename)
+    # Convert palette-based images with transparency to RGBA
+    if img.mode == "P" and "transparency" in img.info:
+        img = img.convert("RGBA")
+    else:
+        img = img.convert(mode)
     image = __lists_from_pil_image(img)
     return image
 
@@ -113,7 +119,6 @@ def __lists_from_pil_image(image: PILImage) -> Image:
                 pixels[i][j] = list(pixels[i][j])
     return pixels
 
-
 def __pil_image_from_lists(image_as_lists: Image) -> PILImage:
     """
     Creates an Image object out of an image represented as lists.
@@ -126,19 +131,22 @@ def __pil_image_from_lists(image_as_lists: Image) -> PILImage:
     ------------
     The same image as a PIL Image object.
     """
-    image_as_lists_copy = deepcopy(image_as_lists)
-    height = len(image_as_lists_copy)
-    width = len(image_as_lists_copy[0])
+    height = len(image_as_lists)
+    width = len(image_as_lists[0])
+    mode = "RGB" if isinstance(image_as_lists[0][0], (list, tuple)) else "L"  # Determine mode based on pixel format
+    im = PILImage.new(mode, (width, height))
 
-    if type(image_as_lists_copy[0][0]) == list:
-        for i in range(height):
-            for j in range(width):
-                image_as_lists_copy[i][j] = tuple(image_as_lists_copy[i][j])
-        im = PILImage.new(RGB_CODE, (width, height))
-    else:
-        im = PILImage.new(GRAYSCALE_CODE, (width, height))
+    for j in range(height):
+        for i in range(width):
+            pixel = image_as_lists[j][i]
+            if mode == "RGB" and isinstance(pixel, list):
+                pixel = tuple(pixel)  # Convert list to tuple for RGB
+            elif mode == "L" and isinstance(pixel, (list, tuple)):
+                pixel = int(pixel[0])  # Extract single value for grayscale and ensure it's an int
+            elif mode == "L" and isinstance(pixel, (np.ndarray, list)):
+                pixel = int(pixel[0])  # Handle NumPy arrays or lists for grayscale
+            elif mode == "L":
+                pixel = int(pixel)  # Ensure grayscale pixel is an int
+            im.putpixel((i, j), pixel)
 
-    for i in range(width):
-        for j in range(height):
-            im.putpixel((i, j), image_as_lists_copy[j][i])
     return im

@@ -76,9 +76,10 @@ def check_json(data: dict) -> None:
                 raise ValueError(f"Invalid operation type: {operation[TYPE_KEY]}."
                                  f"Must be one of {ADJUSTMENTS_TYPES + FILTERS_TYPES}.")
 
-            if check_operation_values(operation):
-                raise ValueError(f"Invalid operation values"
-                                 f"for operation number {data[OPERATION_KEY].index(operation)}.")
+            if not check_operation_values(operation):
+                raise ValueError(f"Invalid operation values "
+                                 f"for operation number {data[OPERATION_KEY].index(operation) + 1}: "
+                                 f"{operation[TYPE_KEY]}.")
 
 
 def check_operation_values(operation: dict) -> bool:

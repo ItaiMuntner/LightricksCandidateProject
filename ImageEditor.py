@@ -141,4 +141,8 @@ def main() -> None:
         ImageHelperFunctions.show_image(image)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+        print("Image processing completed successfully.")
+    except Exception as e:
+        print(f"An error occurred: {e}")

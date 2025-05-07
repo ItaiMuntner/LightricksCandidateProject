@@ -1,0 +1,10 @@
+{
+ "input": "green-leaf.png",
+ "output": "output.png",
+ "display": true,
+ "operations": [
+ {
+ "type": "sobel"
+ }
+ ]
+}

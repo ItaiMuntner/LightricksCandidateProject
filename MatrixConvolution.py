@@ -74,8 +74,8 @@ def convolve(matrix: Image, kernel: Kernel) -> Image:
             convolved_matrix = convolve_2D_fft(padded_matrix, kernel)
 
     # Returning the convolved matrix after trimming it to the original size
-    return convolved_matrix[kernel_shape[0] // 2: -kernel_shape[0] // 2,
-                            kernel_shape[1] // 2: -kernel_shape[1] // 2].tolist()
+    return np.array(convolved_matrix)[kernel_shape[0] // 2: -kernel_shape[0] // 2,
+           kernel_shape[1] // 2: -kernel_shape[1] // 2].tolist()
 
 
 def naive_convolution(kernel: Kernel, kernel_shape: tuple[int, int], matrix: Image, padded_matrix: Image) -> Image:

@@ -44,8 +44,8 @@ def adjust_image(image: Image, brightness: float=0.0, contrast: float=0.0, satur
     Returns:
         np.ndarray: Adjusted RGB image (uint8)
     """
-    # Ensure the image is in float32 format
-    image = image.astype(np.float32)
+    # Ensure the image is a NumPy array and in float32 format
+    image = np.array(image, dtype=np.float32)
 
     # Only adjust brightness, contrast, and saturation if they are not equal to their default values
 

@@ -59,7 +59,7 @@ def apply_filter(rgb_image: Image, filter_type: str,
     list of lists of a list of int: The filtered image.
     """
     # Check if the image is empty
-    if not rgb_image or not rgb_image[0] or not rgb_image[0][0]:
+    if rgb_image is None or len(rgb_image) == 0 or rgb_image[0] is None or len(rgb_image[0]) == 0:
         return []
 
     image_layers_num = len(rgb_image[0][0])
@@ -84,8 +84,8 @@ def apply_filter(rgb_image: Image, filter_type: str,
 
         # Combine the filtered layers back into a single image
         combined_filtered_image = [[[filtered_image[layer][i][j] for layer in range(image_layers_num)]
-                                     for j in range(len(filtered_image[0]))]
-                                    for i in range(len(filtered_image[0][0]))]
+                                     for j in range(len(filtered_image[0][0]))]
+                                    for i in range(len(filtered_image[0]))]
 
         return combined_filtered_image
 

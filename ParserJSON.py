@@ -8,11 +8,7 @@
 ##############################################################################
 #                                   Imports                                  #
 ##############################################################################
-
-##############################################################################
-#                                   Typing                                   #
-##############################################################################
-
+import json
 
 ##############################################################################
 #                                 CONSTANTS                                  #
@@ -32,7 +28,7 @@ FILTERS_TYPES = ["sharpen", "box", "sobel"]
 ##############################################################################
 
 
-def parse_json(json_file: str) -> dict:
+def check_json(data: dict) -> None:
     """
     Parses the JSON file and returns the data as a dictionary.
 
@@ -44,11 +40,6 @@ def parse_json(json_file: str) -> dict:
     ------------
     dict: The parsed data from the JSON file.
     """
-    import json
-
-    with open(json_file, 'r') as file:
-        data = json.load(file)
-
     # Check if the JSON data is empty
     if not data:
         raise ValueError("The JSON file is empty.")
@@ -89,10 +80,8 @@ def parse_json(json_file: str) -> dict:
                 raise ValueError(f"Invalid operation values"
                                  f"for operation number {data[OPERATION_KEY].index(operation)}.")
 
-    return data
 
-
-def check_operation_values(operation):
+def check_operation_values(operation: dict) -> bool:
     """
     Checks if the operation values are valid.
 
@@ -126,9 +115,9 @@ def check_operation_values(operation):
             return True
         elif operation["type"] == "sharpen":
             # Check if the sharpening factor is a positive number
-            if "factor" not in operation or not isinstance(operation["factor"], (int, float)) or operation[
-                "factor"] <= 0:
-                print("'factor' key of sharpen is missing or not an invalid number.")
+            if "amount" not in operation or not isinstance(operation["amount"], (int, float)) or operation[
+                "amount"] <= 0:
+                print("'amount' key of sharpen is missing or an invalid number.")
                 return False
             return True
         elif operation["type"] == "sobel":
@@ -157,10 +146,11 @@ def extract_image_data(data: dict) -> dict:
     ------------
     dict: The extracted image data.
     """
+    # Create a dictionary to store the image data
     image_data = {
-        "image": data.get("image"),
-        "filters": data.get("filters"),
-        "adjustments": data.get("adjustments")
+        INPUT_KEY: data[INPUT_KEY],
+        OUTPUT_KEY: data.get(OUTPUT_KEY, None),
+        DISPLAY_KEY: data.get(DISPLAY_KEY, False),
+        OPERATION_KEY: data.get(OPERATION_KEY, [])
     }
-
     return image_data

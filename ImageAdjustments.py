@@ -44,19 +44,25 @@ def adjust_image(image: Image, brightness: float=0.0, contrast: float=0.0, satur
     Returns:
         np.ndarray: Adjusted RGB image (uint8)
     """
+    # Ensure the image is in float32 format
     image = image.astype(np.float32)
 
-    # Adjust brightness
-    image += brightness * MAX_PIXEL_VALUE_FLOAT
+    # Only adjust brightness, contrast, and saturation if they are not equal to their default values
 
-    # Adjust contrast
-    image = (1 + contrast) * (image - MIDDLE_PIXEL_VALUE) + MIDDLE_PIXEL_VALUE
+    if brightness != 0:
+        # Adjust brightness
+        image += brightness * MAX_PIXEL_VALUE_FLOAT
 
-    # Adjust saturation
-    hsv = rgb_to_hsv(np.clip(image, MIN_PIXEL_VALUE, MAX_PIXEL_VALUE).astype(np.uint8))
-    hsv[..., 1] *= saturation
-    hsv[..., 1] = np.clip(hsv[..., 1], 0, 1)
-    image = hsv_to_rgb(hsv)
+    if contrast != 0:
+        # Adjust contrast
+        image = (1 + contrast) * (image - MIDDLE_PIXEL_VALUE) + MIDDLE_PIXEL_VALUE
+
+    if saturation != 1:
+        # Adjust saturation by converting to HSV and modifying the saturation channel
+        hsv = rgb_to_hsv(np.clip(image, MIN_PIXEL_VALUE, MAX_PIXEL_VALUE).astype(np.uint8))
+        hsv[..., 1] *= saturation
+        hsv[..., 1] = np.clip(hsv[..., 1], 0, 1)
+        image = hsv_to_rgb(hsv)
 
     return image
 

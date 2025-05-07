@@ -118,7 +118,7 @@ def main() -> None:
         with open(config, 'r') as json_file:
             config = json.load(json_file)
     except FileNotFoundError:
-        raise FileNotFoundError(f"The file {json_file} was not found.")
+        raise FileNotFoundError(f"The file {config} was not found.")
 
     # Check the JSON configuration file for validity
     ParserJSON.check_json(config)

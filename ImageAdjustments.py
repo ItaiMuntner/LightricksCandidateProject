@@ -25,6 +25,7 @@ Image = Union[ColoredImage, SingleChannelImage, np.ndarray]
 MAX_PIXEL_VALUE = 255
 MAX_PIXEL_VALUE_FLOAT = 255.0
 MIDDLE_PIXEL_VALUE = 128.0
+MIN_PIXEL_VALUE = 0
 
 ##############################################################################
 #                              Helper Functions                              #
@@ -37,7 +38,7 @@ def adjust_image(image: Image, brightness: float=0.0, contrast: float=0.0, satur
     Parameters:
         image (np.ndarray): RGB image (uint8)
         brightness (float): Additive brightness, range ~[-1.0, 1.0]
-        contrast (float): Contrast factor, where 0.0 = no change, -1.0 = gray
+        contrast (float): Contrast factor, where 0.0 = no change, -1.0 = gray, 1.0 = double contrast
         saturation (float): 1.0 = no change, 0.0 = grayscale
 
     Returns:
@@ -52,7 +53,7 @@ def adjust_image(image: Image, brightness: float=0.0, contrast: float=0.0, satur
     image = (1 + contrast) * (image - MIDDLE_PIXEL_VALUE) + MIDDLE_PIXEL_VALUE
 
     # Adjust saturation
-    hsv = rgb_to_hsv(np.clip(image, 0, MAX_PIXEL_VALUE).astype(np.uint8))
+    hsv = rgb_to_hsv(np.clip(image, MIN_PIXEL_VALUE, MAX_PIXEL_VALUE).astype(np.uint8))
     hsv[..., 1] *= saturation
     hsv[..., 1] = np.clip(hsv[..., 1], 0, 1)
     image = hsv_to_rgb(hsv)

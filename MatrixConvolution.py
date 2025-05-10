@@ -55,7 +55,7 @@ def convolve(matrix: Image, kernel: Kernel) -> Image:
                                     (kernel_shape[1] // 2, kernel_shape[1] // 2)),
                            mode='edge')
 
-    convolved_matrix = np.zeros_like(matrix)
+    convolved_matrix = np.zeros_like(padded_matrix)
 
     # If the kernel is small, the naive approach is a lot faster
     if kernel_shape[0] <= KERNEL_SIZE_THRESHOLD and kernel_shape[1] <= KERNEL_SIZE_THRESHOLD:

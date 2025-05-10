@@ -112,32 +112,39 @@ def main() -> None:
     None
     """
     # Parse command line arguments and load the JSON configuration file
+    print("Parsing command line arguments...")
     args = parse_args()
     config = args.config
     try:
         with open(config, 'r') as json_file:
+            print(f"Loading JSON configuration file: {config}")
             config = json.load(json_file)
     except FileNotFoundError:
         raise FileNotFoundError(f"The file {config} was not found.")
 
     # Check the JSON configuration file for validity
+    print("Checking JSON configuration file...")
     ParserJSON.check_json(config)
     image_data = ParserJSON.extract_image_data(config)
 
     # Load the image
     try:
+        print(f"Loading image from: {image_data[INPUT_KEY]}")
         image = ImageHelperFunctions.load_image(image_data[INPUT_KEY])
     except FileNotFoundError:
         raise FileNotFoundError(f"The file {image_data[INPUT_KEY]} was not found.")
 
     # Apply operations to the image
     for operation in image_data[OPERATION_KEY]:
+        print(f"Applying operation: {operation[TYPE_KEY]}")
         image = apply_operation(image, operation)
 
     if image_data[OUTPUT_KEY]:
+        print(f"Saving image to: {image_data[OUTPUT_KEY]}")
         ImageHelperFunctions.save_image(image, image_data[OUTPUT_KEY])
 
     if image_data[DISPLAY_KEY]:
+        print("Displaying the image...")
         ImageHelperFunctions.show_image(image)
 
 if __name__ == "__main__":
